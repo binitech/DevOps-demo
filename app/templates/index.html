@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Demo - Task Manager</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        .task-card {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .task-form {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .heading {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .success-message {
+            opacity: 0;
+            right: -300px;
+            position: fixed;
+            top: 20px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-blue-900 min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="heading text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Task Manager</h1>
+            <p class="heading text-xl text-gray-300">TDD & DevOps Demo Application</p>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="success-message bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg">
+            Task completed successfully!
+        </div>
+
+        <!-- Task Form -->
+        <div class="task-form bg-gray-800 rounded-lg p-6 shadow-lg mb-8 max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold mb-4 text-blue-400">Add New Task</h2>
+            <form id="task-form" class="space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-300">Title</label>
+                    <input type="text" id="title" name="title" required
+                        class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
+                    <textarea id="description" name="description" rows="3"
+                        class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <button type="submit"
+                    class="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-md hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300">
+                    Add Task
+                </button>
+            </form>
+        </div>
+
+        <!-- Tasks Container -->
+        <div class="max-w-4xl mx-auto">
+            <h2 class="heading text-2xl font-bold mb-6 text-blue-400">Your Tasks</h2>
+            <div id="tasks-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Tasks will be added here dynamically -->
+            </div>
+            <div id="no-tasks" class="task-card bg-gray-800 rounded-lg p-6 text-center">
+                <p class="text-gray-400">No tasks yet. Add your first task above!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial animations
+        window.addEventListener('DOMContentLoaded', () => {
+            // Animate heading elements
+            gsap.to(".heading", {
+                opacity: 1,
+                transform: "scale(1)",
+                duration: 0.8,
+                stagger: 0.2,
+                ease: "back.out(1.7)"
+            });
+
+            // Animate form
+            gsap.to(".task-form", {
+                opacity: 1,
+                transform: "translateY(0)",
+                duration: 0.8,
+                delay: 0.5,
+                ease: "power2.out"
+            });
+
+            // Animate no-tasks message
+            gsap.to("#no-tasks", {
+                opacity: 1,
+                transform: "translateY(0)",
+                duration: 0.8,
+                delay: 0.7,
+                ease: "power2.out"
+            });
+
+            // Load tasks from API
+            loadTasks();
+        });
+
+        // Helper function to show success message
+        function showSuccess(message = "Action completed successfully!") {
+            const successEl = document.getElementById('success-message');
+            successEl.textContent = message;
+            
+            gsap.to(successEl, {
+                opacity: 1,
+                right: "20px",
+                duration: 0.5,
+                ease: "power2.out"
+            });
+
+            setTimeout(() => {
+                gsap.to(successEl, {
+                    opacity: 0,
+                    right: "-300px",
+                    duration: 0.5,
+                    ease: "power2.in"
+                });
+            }, 3000);
+        }
+
+        // API functions
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const tasks = await response.json();
+                
+                renderTasks(tasks);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        async function createTask(taskData) {
+            try {
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(taskData),
+                });
+                
+                if (response.ok) {
+                    const newTask = await response.json();
+                    showSuccess("Task added successfully!");
+                    loadTasks();
+                    return newTask;
+                }
+            } catch (error) {
+                console.error('Error creating task:', error);
+            }
+        }
+
+        async function deleteTask(taskId) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'DELETE',
+                });
+                
+                if (response.ok) {
+                    showSuccess("Task deleted successfully!");
+                    loadTasks();
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error deleting task:', error);
+            }
+            return false;
+        }
+
+        // UI functions
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasks-container');
+            const noTasksEl = document.getElementById('no-tasks');
+            
+            // Clear previous tasks
+            container.innerHTML = '';
+            
+            // Show/hide no tasks message
+            if (tasks.length === 0) {
+                noTasksEl.style.display = 'block';
+            } else {
+                noTasksEl.style.display = 'none';
+                
+                // Add task cards
+                tasks.forEach((task, index) => {
+                    const taskEl = createTaskElement(task);
+                    container.appendChild(taskEl);
+                    
+                    // Animate the new task
+                    gsap.fromTo(taskEl, 
+                        { opacity: 0, y: 20 },
+                        { 
+                            opacity: 1, 
+                            y: 0, 
+                            duration: 0.5, 
+                            delay: index * 0.1,
+                            ease: "power2.out" 
+                        }
+                    );
+                });
+            }
+        }
+
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            taskEl.className = 'task-card bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700 hover:border-blue-500 transition-all duration-300';
+            taskEl.dataset.id = task.id;
+            
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'text-xl font-bold mb-2 text-blue-400';
+            titleEl.textContent = task.title;
+            
+            const descriptionEl = document.createElement('p');
+            descriptionEl.className = 'text-gray-300 mb-4';
+            descriptionEl.textContent = task.description || 'No description';
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-300';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', () => {
+                // Animate deletion
+                gsap.to(taskEl, {
+                    opacity: 0,
+                    x: -100,
+                    duration: 0.3,
+                    ease: "power2.in",
+                    onComplete: () => {
+                        deleteTask(task.id);
+                    }
+                });
+            });
+            
+            taskEl.appendChild(titleEl);
+            taskEl.appendChild(descriptionEl);
+            taskEl.appendChild(deleteButton);
+            
+            return taskEl;
+        }
+
+        // Event listeners
+        document.getElementById('task-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            
+            if (title) {
+                const newTask = await createTask({ title, description });
+                if (newTask) {
+                    // Clear form
+                    document.getElementById('title').value = '';
+                    document.getElementById('description').value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 
