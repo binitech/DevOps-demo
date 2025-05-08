@@ -6,9 +6,45 @@
     <title>DevOps Demo - Task Manager</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        shimmer: {
+                            '100%': { transform: 'translateX(100%)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    },
+                    animation: {
+                        shimmer: 'shimmer 2s infinite',
+                        float: 'float 6s ease-in-out infinite'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
     <!-- GSAP for animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/styles.css">
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+        }
         .task-card {
             opacity: 0;
             transform: translateY(20px);
@@ -28,55 +64,172 @@
             top: 20px;
             z-index: 100;
         }
+        .shimmer-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer-effect::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.1) 60%,
+                rgba(255, 255, 255, 0)
+            );
+            animation: shimmer 2s infinite;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-blue-900 min-h-screen text-white">
-    <div class="container mx-auto px-4 py-8">
+<body class="bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-900 min-h-screen text-white dark" id="app-body">
+    <!-- Theme toggle button -->
+    <div class="fixed top-4 right-4 z-50">
+        <button id="theme-toggle" class="p-2 rounded-full bg-gray-800/50 backdrop-blur-sm text-yellow-300 hover:bg-gray-700/70 transition-all duration-300">
+            <i id="theme-icon" class="fas fa-sun text-xl"></i>
+        </button>
+    </div>
+    
+    <!-- Background decorations -->
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <div class="absolute top-10 left-10 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
+        <div class="absolute top-40 right-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute bottom-20 left-1/3 w-64 h-64 bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 relative z-10">
         <!-- Header -->
         <div class="text-center mb-12">
-            <h1 class="heading text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Task Manager</h1>
-            <p class="heading text-xl text-gray-300">TDD & DevOps Demo Application</p>
+            <div class="inline-block mb-4 animate-bounce">
+                <i class="fas fa-tasks text-5xl text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500"></i>
+            </div>
+            <h1 class="heading text-6xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 animate-gradient">Task Manager</h1>
+            <p class="heading text-xl text-gray-300 mt-4">TDD & DevOps Demo Application</p>
+            <div class="mt-4 shimmer-effect inline-block py-1 px-4 rounded-full bg-indigo-950 text-indigo-300 text-sm pulse-badge">
+                <i class="fas fa-rocket mr-1"></i> Built with FastAPI & Tailwind CSS
+            </div>
         </div>
 
         <!-- Success Message -->
-        <div id="success-message" class="success-message bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg">
-            Task completed successfully!
+        <div id="success-message" class="success-message bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-xl flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span id="success-text">Task completed successfully!</span>
         </div>
 
         <!-- Task Form -->
-        <div class="task-form bg-gray-800 rounded-lg p-6 shadow-lg mb-8 max-w-2xl mx-auto">
-            <h2 class="text-2xl font-bold mb-4 text-blue-400">Add New Task</h2>
-            <form id="task-form" class="space-y-4">
+        <div class="task-form bg-gray-900/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl mb-12 max-w-2xl mx-auto border border-gray-800">
+            <h2 class="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500 flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i> Add New Task
+            </h2>
+            <form id="task-form" class="space-y-5">
                 <div>
-                    <label for="title" class="block text-sm font-medium text-gray-300">Title</label>
+                    <label for="title" class="block text-sm font-medium text-gray-300 mb-1">
+                        <i class="fas fa-heading text-xs mr-1"></i> Title
+                    </label>
                     <input type="text" id="title" name="title" required
-                        class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="mt-1 block w-full px-4 py-3 bg-gray-800/70 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300">
                 </div>
                 <div>
-                    <label for="description" class="block text-sm font-medium text-gray-300">Description</label>
+                    <label for="description" class="block text-sm font-medium text-gray-300 mb-1">
+                        <i class="fas fa-align-left text-xs mr-1"></i> Description
+                    </label>
                     <textarea id="description" name="description" rows="3"
-                        class="mt-1 block w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        class="mt-1 block w-full px-4 py-3 bg-gray-800/70 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300"></textarea>
                 </div>
                 <button type="submit"
-                    class="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-md hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300">
-                    Add Task
+                    class="w-full px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 flex items-center justify-center group shadow-lg shine-effect">
+                    <span>Add Task</span>
+                    <i class="fas fa-paper-plane ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </button>
             </form>
         </div>
 
         <!-- Tasks Container -->
-        <div class="max-w-4xl mx-auto">
-            <h2 class="heading text-2xl font-bold mb-6 text-blue-400">Your Tasks</h2>
-            <div id="tasks-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="heading text-2xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500 flex items-center">
+                <i class="fas fa-list-check mr-2"></i> Your Tasks
+            </h2>
+            <div id="tasks-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Tasks will be added here dynamically -->
             </div>
-            <div id="no-tasks" class="task-card bg-gray-800 rounded-lg p-6 text-center">
-                <p class="text-gray-400">No tasks yet. Add your first task above!</p>
+            <div id="no-tasks" class="task-card bg-gray-900/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-gray-800 shadow-xl">
+                <div class="flex flex-col items-center">
+                    <i class="fas fa-clipboard-list text-5xl text-gray-600 mb-4"></i>
+                    <p class="text-gray-400">No tasks yet. Add your first task above!</p>
+                    <div class="mt-4 animate-pulse">
+                        <i class="fas fa-arrow-up text-indigo-500"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Theme switcher
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const appBody = document.getElementById('app-body');
+        let isDarkTheme = true;
+
+        themeToggle.addEventListener('click', () => {
+            isDarkTheme = !isDarkTheme;
+            
+            if (isDarkTheme) {
+                // Switch to dark theme
+                appBody.classList.remove('light-theme');
+                appBody.classList.add('dark');
+                appBody.classList.remove('bg-gradient-to-br', 'from-blue-100', 'via-indigo-100', 'to-purple-100');
+                appBody.classList.add('bg-gradient-to-br', 'from-gray-900', 'via-indigo-950', 'to-purple-900');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeIcon.classList.remove('text-indigo-700');
+                themeIcon.classList.add('text-yellow-300');
+            } else {
+                // Switch to light theme
+                appBody.classList.add('light-theme');
+                appBody.classList.remove('dark');
+                appBody.classList.remove('bg-gradient-to-br', 'from-gray-900', 'via-indigo-950', 'to-purple-900');
+                appBody.classList.add('bg-gradient-to-br', 'from-blue-100', 'via-indigo-100', 'to-purple-100');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                themeIcon.classList.remove('text-yellow-300');
+                themeIcon.classList.add('text-indigo-700');
+            }
+            
+            // Reset animations to create a refresh effect
+            resetAnimations();
+        });
+
+        function resetAnimations() {
+            const animatedElements = document.querySelectorAll('.heading, .task-form, .task-card');
+            animatedElements.forEach(el => {
+                // Reset the animation by removing and re-adding the class
+                el.style.animation = 'none';
+                el.offsetHeight; // Trigger reflow
+                el.style.animation = null;
+            });
+            
+            // Restart GSAP animations
+            gsap.to(".heading", {
+                opacity: 1,
+                transform: "scale(1)",
+                duration: 0.5,
+                stagger: 0.1
+            });
+        }
+        
         // Initial animations
         window.addEventListener('DOMContentLoaded', () => {
             // Animate heading elements
@@ -113,7 +266,8 @@
         // Helper function to show success message
         function showSuccess(message = "Action completed successfully!") {
             const successEl = document.getElementById('success-message');
-            successEl.textContent = message;
+            const successText = document.getElementById('success-text');
+            successText.textContent = message;
             
             gsap.to(successEl, {
                 opacity: 1,
@@ -182,6 +336,77 @@
             return false;
         }
 
+        function createConfetti() {
+            const confettiContainer = document.createElement('div');
+            confettiContainer.className = 'fixed inset-0 pointer-events-none z-50';
+            document.body.appendChild(confettiContainer);
+            
+            const colors = ['#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#A8D8EA'];
+            
+            // Create confetti pieces
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                
+                // Random position
+                confetti.style.left = `${Math.random() * 100}vw`;
+                // Random size
+                const size = Math.random() * 10 + 5;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                // Random color
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.setProperty('--color', color);
+                // Random shape
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                // Random animation duration
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                // Random animation delay
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                
+                confettiContainer.appendChild(confetti);
+            }
+            
+            // Remove confetti container after animation completes
+            setTimeout(() => {
+                confettiContainer.remove();
+            }, 5000);
+        }
+
+        async function updateTaskStatus(taskId, completed) {
+            try {
+                // First get the current task
+                const getResponse = await fetch(`/api/tasks/${taskId}`);
+                if (!getResponse.ok) return false;
+                
+                const task = await getResponse.json();
+                task.completed = completed;
+                
+                // Update the task
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(task),
+                });
+                
+                if (response.ok) {
+                    // Show confetti when a task is completed
+                    if (completed) {
+                        createConfetti();
+                    }
+                    
+                    showSuccess(completed ? "Task completed!" : "Task reopened!");
+                    loadTasks();
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+            }
+            return false;
+        }
+
         // UI functions
         function renderTasks(tasks) {
             const container = document.getElementById('tasks-container');
@@ -218,22 +443,91 @@
 
         function createTaskElement(task) {
             const taskEl = document.createElement('div');
-            taskEl.className = 'task-card bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700 hover:border-blue-500 transition-all duration-300';
+            taskEl.className = `task-card ${task.completed ? 'bg-green-900/30' : 'bg-gray-900/80'} backdrop-blur-sm rounded-2xl p-6 shadow-xl border ${task.completed ? 'border-green-800' : 'border-gray-800'} hover:shadow-2xl transition-all duration-300 relative overflow-hidden`;
             taskEl.dataset.id = task.id;
             
+            // Add completion status indicator
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = `absolute top-0 right-0 h-16 w-16 ${task.completed ? 'block' : 'hidden'}`;
+            statusIndicator.innerHTML = `
+                <div class="absolute top-0 right-0 w-16 h-16 transform translate-x-8 -translate-y-8 rotate-45 bg-green-600"></div>
+                <i class="fas fa-check text-white absolute top-1 right-1 text-xs"></i>
+            `;
+            
+            // Task priority/category indicator (random for demo)
+            const categories = ['Feature', 'Bug Fix', 'Improvement', 'Documentation', 'Testing'];
+            const colors = ['bg-blue-500', 'bg-red-500', 'bg-yellow-500', 'bg-purple-500', 'bg-green-500'];
+            const randomIndex = Math.floor(Math.random() * categories.length);
+            
+            const categoryEl = document.createElement('div');
+            categoryEl.className = `text-xs font-semibold ${colors[randomIndex]} bg-opacity-20 text-white px-2 py-1 rounded-full inline-block mb-3 pulse-badge`;
+            categoryEl.textContent = categories[randomIndex];
+            
+            // Title with icon
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'flex items-start mb-2';
+            
+            const iconEl = document.createElement('div');
+            iconEl.className = 'text-indigo-400 mr-2 mt-1';
+            iconEl.innerHTML = '<i class="fas fa-thumbtack"></i>';
+            
             const titleEl = document.createElement('h3');
-            titleEl.className = 'text-xl font-bold mb-2 text-blue-400';
+            titleEl.className = `text-xl font-bold ${task.completed ? 'text-green-400 line-through' : 'text-indigo-400'}`;
             titleEl.textContent = task.title;
             
+            titleContainer.appendChild(iconEl);
+            titleContainer.appendChild(titleEl);
+            
+            // Description with icon
+            const descriptionContainer = document.createElement('div');
+            descriptionContainer.className = 'flex items-start mb-4 pl-5 border-l-2 border-gray-800 ml-1';
+            
             const descriptionEl = document.createElement('p');
-            descriptionEl.className = 'text-gray-300 mb-4';
+            descriptionEl.className = `text-gray-300 ${task.completed ? 'line-through opacity-70' : ''}`;
             descriptionEl.textContent = task.description || 'No description';
             
+            descriptionContainer.appendChild(descriptionEl);
+            
+            // Custom checkbox (optional visual enhancement)
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.className = 'mb-3 flex items-center';
+            
+            const checkbox = document.createElement('div');
+            checkbox.className = `fancy-checkbox cursor-pointer mr-2 ${task.completed ? 'checked' : ''}`;
+            checkbox.addEventListener('click', () => {
+                updateTaskStatus(task.id, !task.completed);
+            });
+            
+            const checkboxLabel = document.createElement('span');
+            checkboxLabel.className = 'text-xs text-gray-400';
+            checkboxLabel.textContent = task.completed ? 'Completed' : 'Mark as complete';
+            
+            checkboxContainer.appendChild(checkbox);
+            checkboxContainer.appendChild(checkboxLabel);
+            
+            // Action buttons container
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'flex space-x-2 mt-4';
+            
+            // Toggle complete button
+            const toggleButton = document.createElement('button');
+            toggleButton.className = `px-3 py-2 ${task.completed ? 'bg-yellow-700' : 'bg-green-700'} text-white rounded-lg hover:bg-opacity-80 flex-1 flex items-center justify-center transition-colors duration-300 text-sm shine-effect`;
+            toggleButton.innerHTML = task.completed ? 
+                '<i class="fas fa-redo mr-1"></i> Reopen' : 
+                '<i class="fas fa-check mr-1"></i> Complete';
+            toggleButton.addEventListener('click', () => {
+                updateTaskStatus(task.id, !task.completed);
+            });
+            
+            // Delete button
             const deleteButton = document.createElement('button');
-            deleteButton.className = 'px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-300';
-            deleteButton.textContent = 'Delete';
+            deleteButton.className = 'px-3 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors duration-300 flex items-center justify-center text-sm shine-effect';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
             deleteButton.addEventListener('click', () => {
-                // Animate deletion
+                // Add slide-out animation class
+                taskEl.classList.add('slide-out');
+                
+                // Animate deletion with GSAP
                 gsap.to(taskEl, {
                     opacity: 0,
                     x: -100,
@@ -245,28 +539,60 @@
                 });
             });
             
-            taskEl.appendChild(titleEl);
-            taskEl.appendChild(descriptionEl);
-            taskEl.appendChild(deleteButton);
+            // Time indicator (random for demo)
+            const timeEl = document.createElement('div');
+            timeEl.className = 'text-xs text-gray-500 absolute bottom-2 right-2';
+            const randomHours = Math.floor(Math.random() * 12) + 1;
+            const randomMins = Math.floor(Math.random() * 60);
+            timeEl.textContent = `${randomHours}:${randomMins < 10 ? '0' + randomMins : randomMins} ${Math.random() > 0.5 ? 'AM' : 'PM'}`;
+            
+            actionsContainer.appendChild(toggleButton);
+            actionsContainer.appendChild(deleteButton);
+            
+            taskEl.appendChild(statusIndicator);
+            taskEl.appendChild(categoryEl);
+            taskEl.appendChild(titleContainer);
+            taskEl.appendChild(checkboxContainer);
+            taskEl.appendChild(descriptionContainer);
+            taskEl.appendChild(actionsContainer);
+            taskEl.appendChild(timeEl);
             
             return taskEl;
         }
 
-        // Event listeners
+        // Task form submission
         document.getElementById('task-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const title = document.getElementById('title').value.trim();
-            const description = document.getElementById('description').value.trim();
+            const titleInput = document.getElementById('title');
+            const descriptionInput = document.getElementById('description');
             
-            if (title) {
-                const newTask = await createTask({ title, description });
-                if (newTask) {
-                    // Clear form
-                    document.getElementById('title').value = '';
-                    document.getElementById('description').value = '';
-                }
+            if (!titleInput.value.trim()) {
+                return;
             }
+            
+            const taskData = {
+                title: titleInput.value.trim(),
+                description: descriptionInput.value.trim(),
+                completed: false
+            };
+            
+            // Add loading state to button
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
+            submitButton.disabled = true;
+            
+            await createTask(taskData);
+            
+            // Reset form and button
+            titleInput.value = '';
+            descriptionInput.value = '';
+            submitButton.innerHTML = originalButtonText;
+            submitButton.disabled = false;
+            
+            // Focus back on title input
+            titleInput.focus();
         });
     </script>
 </body>

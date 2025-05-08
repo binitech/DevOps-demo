@@ -59,6 +59,22 @@ async def delete_task(task_id: str):
     del tasks[task_id]
     return None
 
+@app.put("/api/tasks/{task_id}", response_model=Task)
+async def update_task(task_id: str, task_update: TaskBase):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Update task properties while keeping the same ID
+    existing_task = tasks[task_id]
+    updated_task = Task(
+        id=task_id,
+        title=task_update.title,
+        description=task_update.description,
+        completed=task_update.completed
+    )
+    tasks[task_id] = updated_task
+    return updated_task
+
 # Setup templates
 templates = Jinja2Templates(directory="app/templates")
 
